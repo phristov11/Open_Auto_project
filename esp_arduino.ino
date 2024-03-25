@@ -34,6 +34,7 @@ void loop() {
       delay(1000);
     }
     
+    
     // Execute OFF part always
     digitalWrite(OFF, LOW);
     delay(1000); // Add a delay to prevent busy-waiting
