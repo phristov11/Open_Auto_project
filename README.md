@@ -1,0 +1,1 @@
+![](/wiring_bb.jpg)
