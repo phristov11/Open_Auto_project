@@ -1,6 +1,7 @@
 name: base
 channels:
   - conda-forge
+  - gdal 2.1.* 
 dependencies:
   - django=1.10.5
   - pip:
