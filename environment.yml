@@ -1,0 +1,7 @@
+name: base
+channels:
+  - conda-forge
+dependencies:
+  - django=1.10.5
+  - pip:
+    - django-crispy-forms==1.6.1
