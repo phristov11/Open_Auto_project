@@ -13,7 +13,7 @@ def initialize_gpio():
     GPIO.setup(IPIN, GPIO.IN, pull_up_down=GPIO.PUD_UP)
 
 def initialize_serial():
-    ser = serial.Serial('/dev/ttyAMA0', 9600, timeout=1)
+    ser = serial.Serial('/dev/ttyAMA0', 9600, timeout=1) # edit '/dev/ttyAMA0' depnd on your system
     time.sleep(3)
     ser.reset_input_buffer()
     return ser
