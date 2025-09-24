@@ -1,0 +1,37 @@
+📝 Updated start.sh with logging
+#!/bin/bash
+# Start Dash and Python rotary encoder script in parallel with logging
+
+# Go to Desktop
+cd /home/pi/Desktop || exit 1
+
+# Create logs directory if it doesn’t exist
+mkdir -p logs
+
+# Timestamps for log files
+NOW=$(date +"%Y-%m-%d_%H-%M-%S")
+
+# Start dash and log output
+./dash > logs/dash_${NOW}.log 2>&1 &
+
+# Start Python script and log output
+python3 script.py > logs/script_${NOW}.log 2>&1 &
+
+# Wait for both background processes
+wait
+
+🔑 What this does
+
+Creates a logs/ folder on your Desktop.
+
+Each boot/run creates new log files like:
+
+logs/dash_2025-09-24_14-55-12.log
+logs/script_2025-09-24_14-55-12.log
+
+
+> file.log 2>&1 captures both stdout and stderr.
+
+You can still monitor live logs via:
+
+journalctl -u dash.service -f
