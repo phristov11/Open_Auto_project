@@ -1,145 +1,67 @@
-🔹 Arduino код (пример за 2 енкодера + бутони)
-
-#include <Encoder.h>
-
-// Volume encoder pins
+// === Volume Encoder Pins ===
 #define VOL_CLK 2
-#define VOL_DT 3
+#define VOL_DT  3
 #define VOL_BTN 4
 
-// Media encoder pins
+// === Media Encoder Pins ===
 #define MEDIA_CLK 5
-#define MEDIA_DT 6
+#define MEDIA_DT  6
 #define MEDIA_BTN 7
 
-Encoder volEnc(VOL_CLK, VOL_DT);
-Encoder mediaEnc(MEDIA_CLK, MEDIA_DT);
-
-long volLast = 0;
-long mediaLast = 0;
+// === Encoder states ===
+int lastVolCLK = HIGH;
+int lastMediaCLK = HIGH;
+int lastVolBtn = HIGH;
+int lastMediaBtn = HIGH;
 
 void setup() {
-  Serial.begin(115200);
+  Serial.begin(9600); // Nano Old Bootloader → 9600 baud
 
+  pinMode(VOL_CLK, INPUT);
+  pinMode(VOL_DT, INPUT);
   pinMode(VOL_BTN, INPUT_PULLUP);
+
+  pinMode(MEDIA_CLK, INPUT);
+  pinMode(MEDIA_DT, INPUT);
   pinMode(MEDIA_BTN, INPUT_PULLUP);
+
+  Serial.println("Nano Encoder Control started...");
 }
 
 void loop() {
-  // Volume encoder
-  long volNew = volEnc.read() / 4; // делим, за да е по-стабилно
-  if (volNew > volLast) {
-    Serial.println("VOL_UP");
-    volLast = volNew;
-  } else if (volNew < volLast) {
-    Serial.println("VOL_DOWN");
-    volLast = volNew;
-  }
+  // --- Volume Encoder ---
+  int volCLK = digitalRead(VOL_CLK);
+  int volDT  = digitalRead(VOL_DT);
 
-  // Media encoder
-  long mediaNew = mediaEnc.read() / 4;
-  if (mediaNew > mediaLast) {
-    Serial.println("NEXT");
-    mediaLast = mediaNew;
-  } else if (mediaNew < mediaLast) {
-    Serial.println("PREV");
-    mediaLast = mediaNew;
+  if (volCLK != lastVolCLK && volCLK == LOW) {
+    if (volDT != volCLK) Serial.println("VOL_UP");
+    else Serial.println("VOL_DOWN");
   }
+  lastVolCLK = volCLK;
 
-  // Buttons
-  if (digitalRead(VOL_BTN) == LOW) {
+  // Volume button (MUTE)
+  int volBtn = digitalRead(VOL_BTN);
+  if (volBtn == LOW && lastVolBtn == HIGH) {
     Serial.println("MUTE");
     delay(200); // debounce
   }
-  if (digitalRead(MEDIA_BTN) == LOW) {
-    Serial.println("PLAY_PAUSE");
-    delay(200);
+  lastVolBtn = volBtn;
+
+  // --- Media Encoder ---
+  int mediaCLK = digitalRead(MEDIA_CLK);
+  int mediaDT  = digitalRead(MEDIA_DT);
+
+  if (mediaCLK != lastMediaCLK && mediaCLK == LOW) {
+    if (mediaDT != mediaCLK) Serial.println("NEXT");
+    else Serial.println("PREV");
   }
+  lastMediaCLK = mediaCLK;
+
+  // Media button (PLAY/PAUSE)
+  int mediaBtn = digitalRead(MEDIA_BTN);
+  if (mediaBtn == LOW && lastMediaBtn == HIGH) {
+    Serial.println("PLAY_PAUSE");
+    delay(200); // debounce
+  }
+  lastMediaBtn = mediaBtn;
 }
-Това е за Arduino Uno/Nano/Mega. Ако имаш Leonardo/Pro Micro, пак става.
-
-🔹 Raspberry Pi Python код (адаптиран твоя)
-Променяме скрипта ти така, че да чете от Serial вместо GPIO:
-
-python
-Copy code
-import alsaaudio
-from pynput.keyboard import Controller
-import serial
-from time import sleep
-
-# Настрой си порта (провери с `dmesg | grep tty`)
-ser = serial.Serial('/dev/ttyACM0', 115200, timeout=1)
-
-# Keyboard controller
-keyboard = Controller()
-
-# Volume control setup
-mixer = alsaaudio.Mixer('Master')
-vol_step = 5
-max_vol = 100
-min_vol = 0
-last_vol = mixer.getvolume()[0]
-muted = False
-
-print("Serial Volume + Media Control started...")
-
-while True:
-    line = ser.readline().decode().strip()
-    if not line:
-        continue
-
-    if line == "VOL_UP":
-        current_vol = mixer.getvolume()[0]
-        new_vol = min(current_vol + vol_step, max_vol)
-        mixer.setvolume(new_vol)
-        print("Volume Up:", new_vol)
-
-    elif line == "VOL_DOWN":
-        current_vol = mixer.getvolume()[0]
-        new_vol = max(current_vol - vol_step, min_vol)
-        mixer.setvolume(new_vol)
-        print("Volume Down:", new_vol)
-
-    elif line == "MUTE":
-        if muted:
-            mixer.setvolume(last_vol)
-            print("Unmuted:", last_vol)
-        else:
-            last_vol = mixer.getvolume()[0]
-            mixer.setvolume(0)
-            print("Muted")
-        muted = not muted
-
-    elif line == "NEXT":
-        print("Next Song: N")
-        keyboard.press('n')
-        keyboard.release('n')
-
-    elif line == "PREV":
-        print("Previous Song: V")
-        keyboard.press('v')
-        keyboard.release('v')
-
-    elif line == "PLAY_PAUSE":
-        print("Play/Pause: P")
-        keyboard.press('p')
-        keyboard.release('p')
-
-    sleep(0.01)  # малък delay за да не товари CPU
-🔹 Как да вържеш всичко
-Качваш Arduino кода.
-
-Свързваш енкодерите и бутоните на съответните пинове.
-
-На Raspberry:
-
-Виж къде се закача Arduino-то:
-
-bash
-Copy code
-dmesg | grep tty
-обикновено е /dev/ttyACM0.
-
-Стартираш Python скрипта.
-
