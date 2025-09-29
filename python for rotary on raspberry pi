@@ -1,0 +1,66 @@
+import serial
+import time
+import alsaaudio
+import subprocess
+
+# ===== Настройки =====
+SERIAL_PORT = '/dev/ttyUSB0'
+BAUD_RATE = 9600
+
+# Отвори Serial порт
+ser = serial.Serial(SERIAL_PORT, BAUD_RATE, timeout=1)
+time.sleep(2)  # инициализация
+
+# Настрой ALSA mixer за Volume
+mixer = alsaaudio.Mixer('Master')
+VOL_STEP = 1
+MAX_VOL = 100
+MIN_VOL = 0
+last_vol = mixer.getvolume()[0]
+muted = False
+
+print("Listening for Nano commands...")
+
+while True:
+    if ser.in_waiting > 0:
+        line = ser.readline().decode(errors='ignore').strip()
+        if not line:
+            continue
+
+        print(f"[DEBUG] Received: {line}")
+
+        # --- Volume ---
+        if line == "VOL_UP":
+            current = mixer.getvolume()[0]
+            new_vol = min(current + VOL_STEP, MAX_VOL)
+            mixer.setvolume(new_vol)
+            print(f"[ACTION] Volume Up → {new_vol}")
+
+        elif line == "VOL_DOWN":
+            current = mixer.getvolume()[0]
+            new_vol = max(current - VOL_STEP, MIN_VOL)
+            mixer.setvolume(new_vol)
+            print(f"[ACTION] Volume Down → {new_vol}")
+
+        elif line == "MUTE":
+            if muted:
+                mixer.setvolume(last_vol)
+                print(f"[ACTION] Unmuted → {last_vol}")
+            else:
+                last_vol = mixer.getvolume()[0]
+                mixer.setvolume(0)
+                print("[ACTION] Muted")
+            muted = not muted
+
+        # --- Media (playerctl) ---
+        elif line == "NEXT":
+            subprocess.run(["playerctl", "next"])
+            print("[ACTION] Next Track")
+
+        elif line == "PREV":
+            subprocess.run(["playerctl", "previous"])
+            print("[ACTION] Previous Track")
+
+        elif line == "PLAY_PAUSE":
+            subprocess.run(["playerctl", "play-pause"])
+            print("[ACTION] Play/Pause")
